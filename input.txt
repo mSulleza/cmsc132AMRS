@@ -1,0 +1,2 @@
+ADD R5, R4
+SUB R6, R3
