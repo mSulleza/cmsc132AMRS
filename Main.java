@@ -3,8 +3,14 @@ import java.util.*;
 
 public class Main
 {
-	static LinkedList<String> instruction = new LinkedList<String>();
+	// list of instructions
+	static LinkedList<String> instruction = new LinkedList<String>(); 
+	// list of register
 	static LinkedList<String> registers = new LinkedList<String>();
+	// hash map of registers and actual values
+	HashMap<String, Integer> memory = new HashMap<String, Integer>();
+
+	Boolean[] hardware = {false, false, false, false, false};
 
 	public static void parser(String line)
 	{
@@ -40,5 +46,7 @@ public class Main
 	public static void main(String[] args)
 	{
 		loadFile("input.txt");
+		// initial mapping of registers and their values
+
 	}
 }
