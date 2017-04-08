@@ -2,8 +2,6 @@ import java.util.*;
 public class Instruction implements Runnable
 {
 
-	String instruction;
-	Integer register1, register2;
 	// instructions will run as threads to emulate concurrency in pipelining
 	// they will share the instruction and register stack and the memory hashmap
 	
@@ -15,16 +13,46 @@ public class Instruction implements Runnable
 	// [EX ] - execute
 	// [MEM] - memory
 	// [WB ] - write back
-	public Instruction( String instruction, LinkedList<String> registers, HashMap<String, Integer> memory, Boolean[] hardware)
+
+	// boolean for current stage
+	boolean fetch = false;
+	boolean decode = false;
+	boolean execute = false;
+	boolean memory = false;
+	boolean writeBack = false;
+
+	LinkedList<String> instruction;
+	HashMap<String, Integer> memory;
+	Boolean[] hardware;
+	int program_counter;
+	String current_instruction;
+	public Instruction(LinkedList<String> instruction; HashMap<String, Integer> memory, Boolean[] hardware, int program_counter)
 	{
+		// constructor
 		this.instruction = instruction;
-		this.register1 = register1;
-		this.register2 = register2;
+		this.memory = memory;
+		this.hardware = hardware;
+		this.program_counter = program_counter;
 	}
 
 	public void fetch()
 	{
 		// do fetch
+
+		// acquire the hardware
+		hardware[0] = true;
+
+		current_instruction = instruction.get(program_counter);
+		// fetch the instruction
+		// increase the program counter
+		program_counter += 1;
+
+		fetch = true;
+
+		// release the hardware
+
+		hardware[0] = false;
+
 	}
 	public void decode()
 	{
@@ -46,5 +74,6 @@ public class Instruction implements Runnable
 	public void run()
 	{
 		// do the 5 stage cycle here
+		//
 	}
 }

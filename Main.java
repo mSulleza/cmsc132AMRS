@@ -9,9 +9,12 @@ public class Main
 	static LinkedList<String> registers = new LinkedList<String>();
 	// hash map of registers and actual values
 	HashMap<String, Integer> memory = new HashMap<String, Integer>();
-
+	// shared boolean for hardware availability
 	Boolean[] hardware = {false, false, false, false, false};
-
+	// clock cycle
+	int clock_cycle = 0;
+	// program counter
+	int program_counter = 0;
 	public static void parser(String line)
 	{
 		String[] temp = line.split(" ", 2); // splits the instruction from the register (2 ensures that it only gets the first occurence of the space character)
