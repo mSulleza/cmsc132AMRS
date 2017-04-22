@@ -9,8 +9,17 @@ public class Main
 	static LinkedList<String> registers = new LinkedList<String>();
 	// hash map of registers and actual values
 	HashMap<String, Integer> memory = new HashMap<String, Integer>();
+	// hash map of flags and values
+	HashMap<String, Integer> flags = new HashMap<String, Integer>();
 	// shared boolean for hardware availability
 	Boolean[] hardware = {false, false, false, false, false};
+	
+	// shared string hashmap for register availability
+	// keys are registers, values are either 
+	//"dest" (if used as destination), 
+	//"src" (if used as source),
+	//null if not being used
+	HashMap<String, String> registerInUse = new HashMap<String, String>();
 	// clock cycle
 	int clock_cycle = 0;
 	// program counter
