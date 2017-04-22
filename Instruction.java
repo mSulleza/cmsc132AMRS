@@ -34,7 +34,7 @@ public class Instruction implements Runnable
 	boolean writeBack = false;
 
 	// immediate value for handling immediate input in LOAD instructions
-	int immediate;
+	int immediate = 0;
 
 	// assuming all instructions are I-types (Opcode <dest>, <src>)
 	String dest;
@@ -44,16 +44,16 @@ public class Instruction implements Runnable
 	boolean isImmediate;
 
 	// stall counter for this instruction
-	int stalls;
+	int stalls = 0;
 
 	// instruction flags
-	boolean isLoad;
-	boolean isAdd;
-	boolean isSub;
-	boolean isCmp;
+	boolean isLoad = false;
+	boolean isAdd = false;
+	boolean isSub = false;
+	boolean isCmp = false;
 
 	//instruction stop
-	boolean instStop;
+	boolean instStop = false;
 
 	LinkedList<String> instruction;
 	LinkedList<String> register;
