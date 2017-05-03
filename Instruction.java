@@ -1,11 +1,13 @@
 import java.util.LinkedList;
 import java.util.HashMap;
-public class Instruction implements Runnable
+import java.util.concurrent.atomic.AtomicInteger;
+public class Instruction extends Thread
 {
 
+	private Thread t;
 	// instructions will run as threads to emulate concurrency in pipelining
 	// they will share the instruction and register stack and the memory hashmap
-	
+
 
 	// the will also share the array of boolean to stall the process
 	// flags for instructions are as follows:
@@ -14,7 +16,7 @@ public class Instruction implements Runnable
 	// [EX ] - execute
 	// [MEM] - memory
 	// [WB ] - write back
-	
+
 	//constants
 	public static final String ZERO_FLAG = "ZF";
 	public static final String OVERFLOW_FLAG = "OF";
@@ -30,8 +32,8 @@ public class Instruction implements Runnable
 	boolean fetch = false;
 	boolean decode = false;
 	boolean execute = false;
-	boolean memory = false;
-	boolean writeBack = false;
+	boolean mem = false;
+	boolean wb = false;
 
 	// immediate value for handling immediate input in LOAD instructions
 	int immediate = 0;
@@ -64,31 +66,38 @@ public class Instruction implements Runnable
 	HashMap<String, Integer> flag;
 	Boolean[] hardware;
 	HashMap<String,String> registerInUse;
-	int program_counter;
+	AtomicInteger program_counter;
 	String current_instruction;
-	public Instruction(LinkedList<String> instruction, LinkedList<String> registers, HashMap<String, Integer> memory, HashMap<String, Integer> flag, Boolean[] hardware, HashMap<String,String> registerInUse,int program_counter)
+
+	int ins_count;
+	public Instruction(int ins_count, LinkedList<String> instruction, LinkedList<String> registers, HashMap<String, Integer> memory, HashMap<String, Integer> flag, Boolean[] hardware, HashMap<String,String> registerInUse, AtomicInteger program_counter)
 	{
 		// constructor
 		this.instruction = instruction;
 		this.memoryBlock = memory;
 		this.flag = flag;
-		this.register = register;
+		this.register = registers;
 		this.hardware = hardware;
 		this.program_counter = program_counter;
 		this.registerInUse = registerInUse;
-	}	
+		this.ins_count = ins_count;
+	}
 
-	public void fetch()
+	public synchronized void fetch()
 	{
 		// do fetch
-
+		while(hardware[0] == true)
+		{
+			this.stalls += 1;
+			System.out.println("FETCH HARDWARE NOT AVAILABLE! STALLING");
+		}
 		// acquire the hardware
 		hardware[0] = true;
-
-		current_instruction = instruction.get(program_counter);
+		System.out.println("FETCHING...");
+		System.out.println("PROGRAM COUNTER: " + program_counter.get());
+		current_instruction = instruction.get(program_counter.getAndIncrement());
 		// fetch the instruction
 		// increase the program counter
-		program_counter += 1;
 
 		fetch = true;
 
@@ -97,26 +106,34 @@ public class Instruction implements Runnable
 		hardware[0] = false;
 
 	}
-	public void decode()
+	public synchronized void decode()
 	{
+
+		while(hardware[1] == true)
+		{
+			this.stalls += 1;
+			System.out.println("DECODE HARDWARE NOT AVAILABLE! STALLING");
+		}
 		//use hardware
 		hardware[1] = true;
 		//error variable
 		boolean halt = false;
-
+		System.out.println("DECODING...");
 		// do decode
 		// if blocks for different instructions
 
 		//for LOAD instructions
-		if (current_instruction==LOAD){
+		System.out.println("CURRENT INS: " + current_instruction);
+		if (current_instruction.equals(LOAD)){
 			this.isLoad = true;
 
 			// get registers to use
-			this.dest = register.removeFirst();
+			this.dest = register.pop();
+			System.out.println("DEST IS : " + this.dest);
 
 			//try-catch block for handling integer parse errors
 			try{
-				this.src = register.removeFirst();	
+				this.src = register.pop();
 				this.immediate = Integer.parseInt(this.src);
 
 				//if register is invalid, change halt variable to true
@@ -124,44 +141,50 @@ public class Instruction implements Runnable
 					System.out.println("Instruction ADD "+ this.dest +", "+ this.src +"is invalid. Reason: "+ this.dest + "is not a valid register.");
 					halt = true;
 				}
-			}catch(NumberFormatException e){ 
+			}catch(NumberFormatException e){
 				// e.printStackTrace();
 				System.out.println("Instruction LOAD "+ this.dest +", "+ this.src +"is invalid. Reason: "+ this.src + "is not an immediate value.");
 				halt = true;
 			}
-			
+
 		}
 
 		//for ADD instructions
-		else if (current_instruction==ADD){
+		else if (current_instruction.equals(ADD)){
 			this.isAdd = true;
 
 			// get registers to use
-			this.dest = register.removeFirst();
-			this.src = register.removeFirst();
+			this.dest = register.pop();
+			System.out.println("(ADD) DEST IS: " + this.dest);
+			this.src = register.pop();
+			System.out.println("(ADD) SRC IS: " + this.src);
 
 			//check if registers are invalid
-			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc()) halt = true;
-			
+			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc())
+			{
+				System.out.println("HALTING...");
+				halt = true;
+			}
+
 			//else, assume valid and use registers
 			else{
 				registerInUse.replace(this.dest, DEST);
 				registerInUse.replace(this.src, SRC);
 			}
-			
+
 		}
 
 		//for SUB instructions
-		else if (this.current_instruction==SUB){
+		else if (this.current_instruction.equals(SUB)){
 			this.isSub = true;
 
 			//get registers to use
-			this.dest = register.removeFirst();
-			this.src = register.removeFirst();
+			this.dest = register.pop();
+			this.src = register.pop();
 
 			//check if registers are invalid
 			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc()) halt = true;
-			
+
 			//else, assume valid and use registers
 			else {
 				registerInUse.replace(this.dest, DEST);
@@ -170,16 +193,16 @@ public class Instruction implements Runnable
 		}
 
 		// for CMP instructions
-		else if (this.current_instruction==CMP){
+		else if (this.current_instruction.equals(CMP)){
 			this.isCmp = true;
 
 			//get registers to use
-			this.dest = register.removeFirst();
-			this.src = register.removeFirst();
+			this.dest = register.pop();
+			this.src = register.pop();
 
 			//check if registers are invalid
 			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc()) halt = true;
-			
+
 			//else, assume valid and use registers
 			else {
 				registerInUse.replace(this.dest, DEST);
@@ -189,47 +212,56 @@ public class Instruction implements Runnable
 
 		//for invalid instructions
 		else{
-			System.out.println("Instruction " + current_instruction + " " + this.dest + ", " + this.src + "is invalid. Reason: "+ src + "is not a valid operation.");
+			System.out.println("Instruction " + current_instruction + " " + this.dest + ", " + this.src + " is invalid. Reason: "+ src + "is not a valid operation.");
 			halt = true;
 		}
 
 		//make sure to remove hardware
-		this.program_counter ++;
 		this.decode = true;
-		hardware[1] = false;	
+		hardware[1] = false;
 
 		//if there was an error, stop
-		if (halt) this.stop();
-		
+		if (halt) return;
+		System.out.println("FETCH is done!");
+
 	}
-	public void execute()
+	public synchronized void execute()
 	{
 		boolean halt = false;
 
 		//if hardware is not available or if there is a flow dependency, stall execution
-		if(hardware[2]!=true || !checkFlowDependency()){
+		while(hardware[2] == true && checkFlowDependency())
+		{
+			this.stalls += 1;
+			System.out.println("EXECUTE HARDWARE NOT AVAILABLE! STALLING");
+		}
 
+		if(!checkFlowDependency()){
+
+			System.out.println("NO FLOW DEPENDENCIES FOUND!");
 			// do execute and use registers
 			hardware[2] = true;
-
+			System.out.println("EXECUTING...");
 			//no need to conduct error checking since decode stage does most of that(?)
 
 			//computation starts here
 			//no writing to registers yet since that happens only during writeback stage
-			
+
 			//for LOAD instruction
 			if(isLoad){
+				System.out.println("EXECUTING LOAD INSTRUCTION...");
 				this.result = this.immediate;
-				
+				System.out.println("LOADED: " + this.dest + ": " + this.result);
 			}
 
 			//for ADD instruction
 			else if(isAdd){
+				System.out.println("EXECUTING ADD INSTRUCTION...");
 				this.result = memoryBlock.get(dest) + memoryBlock.get(src);
-
+				System.out.println("Result is: " + this.result);
 				//raise flags for underflow or overflow
 				if(checkForOverflow(this.result) || checkForUnderflow(this.result)) halt = true;
-				
+
 			}
 
 			//for SUB instruction
@@ -238,7 +270,7 @@ public class Instruction implements Runnable
 
 				//raise flags for underflow or overflow
 				if(checkForOverflow(this.result) || checkForUnderflow(this.result)) halt = true;
-				
+
 			}
 
 			//for CMP instruction
@@ -252,11 +284,8 @@ public class Instruction implements Runnable
 
 			}
 
-			
-
-			this.program_counter ++;
 			this.execute = true;
-			
+
 			//make sure to open registers again
 			registerInUse.replace(dest, null);
 			registerInUse.replace(src, null);
@@ -264,40 +293,70 @@ public class Instruction implements Runnable
 			//make sure to deallocate hardware
 			hardware[2] = false;
 			if (halt){
-				this.stop();
+				System.out.println("HALTING...");
+				return;
 			}
 		}
 
-		//if stalled, increase stall count and do nothing.
-		else
-		{
-			this.stalls++;
-		}
-		
 	}
-	public void memory()
+	public synchronized void mem_proc()
 	{
 		// do memory
-	}
-	public void writeBack()
-	{
-		// do write back
+		this.mem = true;
 	}
 
-	public void run()
+	public synchronized void writeBack()
+	{
+		// do write back
+		// stall
+		while(hardware[4] == true)
+		{
+			this.stalls += 1;
+			System.out.println("WRITEBACK HARDWARE NOT AVAILABLE! STALLING!");
+		}
+
+		hardware[4] = true;
+
+		//access registers
+		// for(String s : register){
+		// 	if(s.contains(registerInUse)){
+		// 		this.register = this.result;
+		// 	}
+		// }
+
+		memoryBlock.put(dest, result);
+
+		this.wb = true;
+		//release the writeback hardware
+		hardware[4] = false;
+	}
+
+	public synchronized void run()
 	{
 		// do the 5 stage cycle here
 		//
+		while(fetch == false || decode == false || execute == false || mem == false || wb == false)
+		{
+			if (fetch == false && decode == false && execute == false && mem == false && wb == false) fetch();
+			else if (fetch == true && decode == false && execute == false && mem == false && wb == false) decode();
+			else if (fetch == true && decode == true && execute == false && mem == false && wb == false) execute();
+			else if (fetch == true && decode == true && execute == true && mem == false && wb == false) mem_proc();
+			else if (fetch == true && decode == true && execute == true && mem == true && wb == false) writeBack();
+		}
 	}
 
-	public void stop()
+	public synchronized void start()
 	{
-		//stop thread here
+		while(t == null)
+		{
+			t = new Thread (this, Integer.toString(ins_count));
+			t.start ();
+		}
 	}
 
 	//checks if dest is an invalid register
 	//return true if invalid, false otherwise
-	public boolean checkInvalidRegisterDest(){
+	public synchronized boolean checkInvalidRegisterDest(){
 		if(!memoryBlock.containsKey(this.dest)){
 			System.out.println("Instruction " + this.current_instruction +this.dest+", "+this.src +"is invalid. Reason: "+ this.dest+ "is not a valid register.");
 			return true;
@@ -313,7 +372,7 @@ public class Instruction implements Runnable
 
 	//checks if src is an invalid register
 	//return true if invalid, false otherwise
-	public boolean checkInvalidRegisterSrc(){
+	public synchronized boolean checkInvalidRegisterSrc(){
 		if(!memoryBlock.containsKey(this.src)){
 			System.out.println("Instruction " + this.current_instruction +this.dest+", "+this.src +"is invalid. Reason: "+ this.src+ "is not a valid register.");
 			return true;
@@ -327,17 +386,17 @@ public class Instruction implements Runnable
 	}
 
 	//checks availability of source operand by knowing
-	//if the source operand is currently being used 
+	//if the source operand is currently being used
 	//as a destination operand by another instruction
 	//return true if flow dependency exists, false otherwise
-	public boolean checkFlowDependency(){
+	public synchronized boolean checkFlowDependency(){
 		if(registerInUse.get(this.src)==DEST){
 			return true;
 		}
 		return false;
 	}
 
-	public boolean checkForOverflow(int num){
+	public synchronized boolean checkForOverflow(int num){
 		if (num>99){
 			System.out.println("Overflow detected at Instruction"+ this.current_instruction + " " + this.dest + ", " + this.src + ".");
 			System.out.println("Terminating...");
@@ -346,7 +405,7 @@ public class Instruction implements Runnable
 		else return false;
 	}
 
-	public boolean checkForUnderflow(int num){
+	public synchronized boolean checkForUnderflow(int num){
 		if (num<-99) {
 			System.out.println("Underflow detected at Instruction"+ this.current_instruction + " " + this.dest + ", " + this.src + ".");
 			System.out.println("Terminating...");
