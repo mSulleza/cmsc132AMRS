@@ -21,7 +21,7 @@ public class Main
 	//null if not being used
 	static HashMap<String, String> registerInUse = new HashMap<String, String>();
 	// clock cycle
-	static int clock_cycle = 0;
+	static AtomicInteger clock_cycle = new AtomicInteger(0);
 	// program counter
 	static AtomicInteger program_counter = new AtomicInteger(0);
 	static int number_of_instructions = 0;
@@ -76,20 +76,22 @@ public class Main
 		initializeRegisters();
 		int threads = 0;
 		System.out.println("INSTRUCTION COUNT: " + number_of_instructions);
+		ArrayList<Instruction> threadList = new ArrayList<Instruction>();
 		while (threads < number_of_instructions)
 		{
-			try
-			{
-				Instruction ins = new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter);
-				ins.start();
-				ins.join();
-			}
-			catch(InterruptedException e)
-			{
-				e.printStackTrace();
-			}
+			Instruction ins = new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, clock_cycle);
+			// threadList.add(ins);
+			ins.start();
 			threads += 1;
 		}
+
+		// for (int i = 0; i < threadList.size(); i++)
+		// {
+		// 		threadList.get(i).run();
+		// }
+
+		System.out.println("TOTAL CLOCK CYCLES: " + clock_cycle);
+
 
 	}
 }

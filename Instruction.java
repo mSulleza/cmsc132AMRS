@@ -67,10 +67,11 @@ public class Instruction extends Thread
 	Boolean[] hardware;
 	HashMap<String,String> registerInUse;
 	AtomicInteger program_counter;
+	AtomicInteger clock_cycle;
 	String current_instruction;
 
 	int ins_count;
-	public Instruction(int ins_count, LinkedList<String> instruction, LinkedList<String> registers, HashMap<String, Integer> memory, HashMap<String, Integer> flag, Boolean[] hardware, HashMap<String,String> registerInUse, AtomicInteger program_counter)
+	public Instruction(int ins_count, LinkedList<String> instruction, LinkedList<String> registers, HashMap<String, Integer> memory, HashMap<String, Integer> flag, Boolean[] hardware, HashMap<String,String> registerInUse, AtomicInteger program_counter, AtomicInteger clock_cycle)
 	{
 		// constructor
 		this.instruction = instruction;
@@ -81,6 +82,7 @@ public class Instruction extends Thread
 		this.program_counter = program_counter;
 		this.registerInUse = registerInUse;
 		this.ins_count = ins_count;
+		this.clock_cycle = clock_cycle;
 	}
 
 	public synchronized void fetch()
@@ -89,6 +91,14 @@ public class Instruction extends Thread
 		while(hardware[0] == true)
 		{
 			this.stalls += 1;
+			// try
+			// {
+			// 	Thread.sleep(10);
+			// }
+			// catch(Exception e)
+			// {
+			// 	e.printStackTrace();
+			// }
 			System.out.println("FETCH HARDWARE NOT AVAILABLE! STALLING");
 		}
 		// acquire the hardware
@@ -100,7 +110,7 @@ public class Instruction extends Thread
 		// increase the program counter
 
 		fetch = true;
-
+		clock_cycle.getAndIncrement();
 		// release the hardware
 
 		hardware[0] = false;
@@ -112,6 +122,14 @@ public class Instruction extends Thread
 		while(hardware[1] == true)
 		{
 			this.stalls += 1;
+			// try
+			// {
+			// 	Thread.sleep(10);
+			// }
+			// catch(Exception e)
+			// {
+			// 	e.printStackTrace();
+			// }
 			System.out.println("DECODE HARDWARE NOT AVAILABLE! STALLING");
 		}
 		//use hardware
@@ -216,6 +234,8 @@ public class Instruction extends Thread
 			halt = true;
 		}
 
+		clock_cycle.getAndIncrement();
+
 		//make sure to remove hardware
 		this.decode = true;
 		hardware[1] = false;
@@ -233,6 +253,14 @@ public class Instruction extends Thread
 		while(hardware[2] == true && checkFlowDependency())
 		{
 			this.stalls += 1;
+			// try
+			// {
+			// 	Thread.sleep(10);
+			// }
+			// catch(Exception e)
+			// {
+			// 	e.printStackTrace();
+			// }
 			System.out.println("EXECUTE HARDWARE NOT AVAILABLE! STALLING");
 		}
 
@@ -266,8 +294,9 @@ public class Instruction extends Thread
 
 			//for SUB instruction
 			else if(isSub){
+				System.out.println("EXECUTING SUB INSTRUCTION...");
 				this.result = memoryBlock.get(dest) - memoryBlock.get(src);
-
+				System.out.println("Result is: " + this.result);
 				//raise flags for underflow or overflow
 				if(checkForOverflow(this.result) || checkForUnderflow(this.result)) halt = true;
 
@@ -290,6 +319,7 @@ public class Instruction extends Thread
 			registerInUse.replace(dest, null);
 			registerInUse.replace(src, null);
 
+			clock_cycle.getAndIncrement();
 			//make sure to deallocate hardware
 			hardware[2] = false;
 			if (halt){
@@ -302,6 +332,20 @@ public class Instruction extends Thread
 	public synchronized void mem_proc()
 	{
 		// do memory
+		while(hardware[3] == true)
+		{
+			this.stalls += 1;
+			// try
+			// {
+			// 	Thread.sleep(10);
+			// }
+			// catch(Exception e)
+			// {
+			// 	e.printStackTrace();
+			// }
+			System.out.println("MEMORY HARDWARE NOT AVAILABLE! STALLING");
+		}
+		clock_cycle.getAndIncrement();
 		this.mem = true;
 	}
 
@@ -312,6 +356,14 @@ public class Instruction extends Thread
 		while(hardware[4] == true)
 		{
 			this.stalls += 1;
+			// try
+			// {
+			// 	Thread.sleep(10);
+			// }
+			// catch(Exception e)
+			// {
+			// 	e.printStackTrace();
+			// }
 			System.out.println("WRITEBACK HARDWARE NOT AVAILABLE! STALLING!");
 		}
 
@@ -325,6 +377,8 @@ public class Instruction extends Thread
 		// }
 
 		memoryBlock.put(dest, result);
+
+		clock_cycle.getAndIncrement();
 
 		this.wb = true;
 		//release the writeback hardware
@@ -350,7 +404,15 @@ public class Instruction extends Thread
 		while(t == null)
 		{
 			t = new Thread (this, Integer.toString(ins_count));
-			t.start ();
+			// try
+			// {
+				t.run();
+				// t.join();
+			// }
+			// catch(InterruptedException e)
+			// {
+			// 	e.printStackTrace();
+			// }
 		}
 	}
 
