@@ -21,11 +21,11 @@ public class Main
 	//null if not being used
 	static HashMap<String, String> registerInUse = new HashMap<String, String>();
 	// clock cycle
-	static int clock_cycle = 0;
+	static AtomicInteger clock_cycle = new AtomicInteger(0);
 	// program counter
 	static AtomicInteger program_counter = new AtomicInteger(0);
 	static int number_of_instructions = 0;
-	static LinkedList<Integer> runningTheads = new LinkedList<Integer>();
+	static LinkedList<Integer> runningThreads = new LinkedList<Integer>();
 	public static void parser(String line)
 	{
 		String[] temp = line.split(" ", 2); // splits the instruction from the register (2 ensures that it only gets the first occurence of the space character)
@@ -81,9 +81,8 @@ public class Main
 		{
 			// try
 			// {
-			Instruction ins = new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, runningTheads);
-			ins.start();
-				// ins.join();
+			new Thread(new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, runningThreads, clock_cycle)).start();
+			// ins.join();
 			// }
 			// catch(InterruptedException e)
 			// {
@@ -91,6 +90,5 @@ public class Main
 			// }
 			threads += 1;
 		}
-
 	}
 }

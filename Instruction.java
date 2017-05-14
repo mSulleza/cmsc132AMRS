@@ -1,7 +1,7 @@
 import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-public class Instruction extends Thread
+public class Instruction implements Runnable
 {
 
 	private Thread t;
@@ -67,10 +67,12 @@ public class Instruction extends Thread
 	Boolean[] hardware;
 	HashMap<String,String> registerInUse;
 	AtomicInteger program_counter;
+	AtomicInteger clock_cycle;
 	String current_instruction;
-	LinkedList<Integer> runningTheads;
+	LinkedList<Integer> runningThreads;
 	int ins_count;
-	public Instruction(int ins_count, LinkedList<String> instruction, LinkedList<String> registers, HashMap<String, Integer> memory, HashMap<String, Integer> flag, Boolean[] hardware, HashMap<String,String> registerInUse, AtomicInteger program_counter, LinkedList<Integer> runningTheads)
+	int local_clock_cycle;
+	public Instruction(int ins_count, LinkedList<String> instruction, LinkedList<String> registers, HashMap<String, Integer> memory, HashMap<String, Integer> flag, Boolean[] hardware, HashMap<String,String> registerInUse, AtomicInteger program_counter, LinkedList<Integer> runningThreads, AtomicInteger clock_cycle)
 	{
 		// constructor
 		this.instruction = instruction;
@@ -81,7 +83,9 @@ public class Instruction extends Thread
 		this.program_counter = program_counter;
 		this.registerInUse = registerInUse;
 		this.ins_count = ins_count;
-		this.runningTheads = runningTheads;
+		this.runningThreads = runningThreads;
+		this.clock_cycle = clock_cycle;
+		this.local_clock_cycle = clock_cycle.get();
 	}
 
 	public synchronized void fetch()
@@ -89,39 +93,41 @@ public class Instruction extends Thread
 		// do fetch
 		while(hardware[0] == true)
 		{
-			this.stalls += 1;
+
 			System.out.println("FETCH HARDWARE NOT AVAILABLE! STALLING");
 			try
 			{
-				System.out.println("SLEEPING FOR 100ms...");
+
 				Thread.sleep(100);
 			}
 			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
+			local_clock_cycle += 1;
 		}
 		// acquire the hardware
 		hardware[0] = true;
 		System.out.println("FETCHING...");
 		System.out.println("PROGRAM COUNTER: " + program_counter.get());
 		current_instruction = instruction.get(program_counter.getAndIncrement());
+		// fetch the instruction
+		// increase the program counter
+
+		fetch = true;
 		try
 		{
-			System.out.println("SLEEPING FOR 100ms...");
+
 			Thread.sleep(100);
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
 		}
-		// fetch the instruction
-		// increase the program counter
-
-		fetch = true;
 
 		// release the hardware
-
+		local_clock_cycle += 1;
+		clock_cycle.getAndIncrement();
 		hardware[0] = false;
 
 	}
@@ -134,8 +140,9 @@ public class Instruction extends Thread
 			System.out.println("DECODE HARDWARE NOT AVAILABLE! STALLING");
 			try
 			{
-				System.out.println("SLEEPING FOR 100ms...");
+
 				Thread.sleep(100);
+				local_clock_cycle += 1;
 			}
 			catch (Exception e)
 			{
@@ -246,7 +253,7 @@ public class Instruction extends Thread
 
 		try
 		{
-			System.out.println("SLEEPING FOR 100ms...");
+
 			Thread.sleep(100);
 		}
 		catch (Exception e)
@@ -256,10 +263,10 @@ public class Instruction extends Thread
 		//make sure to remove hardware
 		this.decode = true;
 		hardware[1] = false;
-
+		local_clock_cycle += 1;
 		//if there was an error, stop
 		if (halt) return;
-		System.out.println("FETCH is done!");
+		System.out.println("DECODE is done!");
 
 	}
 	public synchronized void execute()
@@ -273,8 +280,9 @@ public class Instruction extends Thread
 			System.out.println("EXECUTE HARDWARE NOT AVAILABLE! STALLING");
 			try
 			{
-				System.out.println("SLEEPING FOR 100ms...");
+
 				Thread.sleep(100);
+				local_clock_cycle += 1;
 			}
 			catch (Exception e)
 			{
@@ -337,16 +345,16 @@ public class Instruction extends Thread
 		registerInUse.replace(dest, null);
 		registerInUse.replace(src, null);
 
-		// try
-		// {
-		// 	System.out.println("SLEEPING FOR 100ms...");
-		// 	Thread.sleep(100);
-		// }
-		// catch (Exception e)
-		// {
-		// 	e.printStackTrace();
-		// }
+		try
+		{
 
+			Thread.sleep(100);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		local_clock_cycle += 1;
 			//make sure to deallocate hardware
 		hardware[2] = false;
 		if (halt){
@@ -364,8 +372,9 @@ public class Instruction extends Thread
 			System.out.println("MEMORY HARDWARE NOT AVAIABLE! STALLING!");
 			try
 			{
-				System.out.println("SLEEPING FOR 100ms...");
+
 				Thread.sleep(100);
+				local_clock_cycle += 1;
 			}
 			catch (Exception e)
 			{
@@ -373,7 +382,17 @@ public class Instruction extends Thread
 			}
 		}
 		hardware[3] = true;
+		local_clock_cycle += 1;
 		this.mem = true;
+		try
+		{
+
+			Thread.sleep(100);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
 		hardware[3] = false;
 	}
 
@@ -387,8 +406,9 @@ public class Instruction extends Thread
 			System.out.println("WRITEBACK HARDWARE NOT AVAILABLE! STALLING!");
 			try
 			{
-				System.out.println("SLEEPING FOR 100ms...");
+
 				Thread.sleep(100);
+				local_clock_cycle += 1;
 			}
 			catch (Exception e)
 			{
@@ -408,6 +428,16 @@ public class Instruction extends Thread
 		memoryBlock.put(dest, result);
 
 		this.wb = true;
+		try
+		{
+
+			Thread.sleep(100);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		local_clock_cycle += 1;
 		//release the writeback hardware
 		hardware[4] = false;
 	}
@@ -425,39 +455,45 @@ public class Instruction extends Thread
 			else if (fetch == true && decode == true && execute == true && mem == true && wb == false) writeBack();
 		}
 
+		if (local_clock_cycle > clock_cycle.get())
+		{
+			int difference = local_clock_cycle - clock_cycle.get();
+			clock_cycle.getAndAdd(difference);
+		}
+		System.out.println("TOTAL CLOCK CYCLES: " + clock_cycle);
+
 		System.out.println("TOTAL NUMBER OF STALLS: " + stalls);
 	}
 
-	public synchronized void start()
-	{
-		while(t == null)
-		{
-			System.out.println("Creating a new thread...");
-			t = new Thread (this, Integer.toString(ins_count));
-			if (ins_count == 0)
-			{
-				t.start();
-				runningTheads.add(ins_count);
-			}
-			else
-			{
-				while (true)
-				{
-					Boolean found = false;
-					for (Integer i : runningTheads)
-					{
-						System.out.println("Instruction: " + i);
-						if (i == ins_count - 1) found = true;
-					}
-
-					if (found == true) break;
-				}
-				System.out.println("Previous instruction started! Starting next instruction...");
-				t.start ();
-				runningTheads.add(ins_count);
-			}
-		}
-	}
+	// public synchronized void start()
+	// {
+	// 	while(t == null)
+	// 	{
+	// 		System.out.println("Creating a new thread...");
+	// 		t = new Thread (this, Integer.toString(ins_count));
+	// 		if (ins_count == 0)
+	// 		{
+	// 			t.start();
+	// 			runningThreads.add(ins_count);
+	// 		}
+	// 		else
+	// 		{
+	// 			while (true)
+	// 			{
+	// 				Boolean found = false;
+	// 				for (Integer i : runningThreads)
+	// 				{
+	// 					if (i == ins_count - 1) found = true;
+	// 				}
+	//
+	// 				if (found == true) break;
+	// 			}
+	// 			System.out.println("Previous instruction started! Starting next instruction...");
+	// 			t.start ();
+	// 			runningThreads.add(ins_count);
+	// 		}
+	// 	}
+	// }
 
 	//checks if dest is an invalid register
 	//return true if invalid, false otherwise
