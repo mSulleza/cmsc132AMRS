@@ -47,6 +47,7 @@ public class Main
 
 			String line;
 
+			//gets each line the parses it into the operation, source and destination
 			while ((line = br.readLine()) != null)
 			{
 				parser(line);
@@ -70,10 +71,12 @@ public class Main
 	{
 		loadFile("input.txt");
 		// initial mapping of registers and their values
+
 		for (int i = 0; i < instruction.size(); i++)
 		{
 			System.out.println("INS: " + instruction.get(i));
 		}
+		//set up the registers
 		initializeRegisters();
 		int threads = 0;
 		System.out.println("INSTRUCTION COUNT: " + number_of_instructions);

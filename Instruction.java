@@ -72,6 +72,7 @@ public class Instruction implements Runnable
 	LinkedList<Integer> runningThreads;
 	int ins_count;
 	int local_clock_cycle;
+
 	public Instruction(int ins_count, LinkedList<String> instruction, LinkedList<String> registers, HashMap<String, Integer> memory, HashMap<String, Integer> flag, Boolean[] hardware, HashMap<String,String> registerInUse, AtomicInteger program_counter, LinkedList<Integer> runningThreads, AtomicInteger clock_cycle)
 	{
 		// constructor
@@ -88,6 +89,8 @@ public class Instruction implements Runnable
 		this.local_clock_cycle = clock_cycle.get();
 	}
 
+	//sleep() used to simulate progression of clock cycles
+	
 	public synchronized void fetch()
 	{
 		// do fetch
@@ -372,7 +375,7 @@ public class Instruction implements Runnable
 			System.out.println("MEMORY HARDWARE NOT AVAIABLE! STALLING!");
 			try
 			{
-
+				
 				Thread.sleep(100);
 				local_clock_cycle += 1;
 			}
@@ -418,13 +421,6 @@ public class Instruction implements Runnable
 
 		hardware[4] = true;
 
-		//access registers
-		// for(String s : register){
-		// 	if(s.contains(registerInUse)){
-		// 		this.register = this.result;
-		// 	}
-		// }
-
 		memoryBlock.put(dest, result);
 
 		this.wb = true;
@@ -445,7 +441,7 @@ public class Instruction implements Runnable
 	public synchronized void run()
 	{
 		// do the 5 stage cycle here
-		//
+		
 		while(fetch == false || decode == false || execute == false || mem == false || wb == false)
 		{
 			if (fetch == false && decode == false && execute == false && mem == false && wb == false) fetch();
@@ -465,35 +461,8 @@ public class Instruction implements Runnable
 		System.out.println("TOTAL NUMBER OF STALLS: " + stalls);
 	}
 
-	// public synchronized void start()
-	// {
-	// 	while(t == null)
-	// 	{
-	// 		System.out.println("Creating a new thread...");
-	// 		t = new Thread (this, Integer.toString(ins_count));
-	// 		if (ins_count == 0)
-	// 		{
-	// 			t.start();
-	// 			runningThreads.add(ins_count);
-	// 		}
-	// 		else
-	// 		{
-	// 			while (true)
-	// 			{
-	// 				Boolean found = false;
-	// 				for (Integer i : runningThreads)
-	// 				{
-	// 					if (i == ins_count - 1) found = true;
-	// 				}
-	//
-	// 				if (found == true) break;
-	// 			}
-	// 			System.out.println("Previous instruction started! Starting next instruction...");
-	// 			t.start ();
-	// 			runningThreads.add(ins_count);
-	// 		}
-	// 	}
-	// }
+
+	//start() function
 
 	//checks if dest is an invalid register
 	//return true if invalid, false otherwise
