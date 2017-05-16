@@ -1,7 +1,7 @@
 import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-public class Instruction implements Runnable
+public class Instruction
 {
 
 	private Thread t;
@@ -114,7 +114,9 @@ public class Instruction implements Runnable
 		// }
 		// acquire the hardware
 		// hardware[0] = true;
+
 		current_instruction = instruction.get(program_counter.getAndIncrement());
+		// current_instruction = instruction.removeFirst();
 		// System.out.println("DOING FETCH FOR INSTRUCTION " + ins_count + " AT CLOCK CYCLE " + clock_cycle.get());
 		runningThreads.add(ins_count);
 		// fetch the instruction
@@ -192,6 +194,8 @@ public class Instruction implements Runnable
 				halt = true;
 			}
 
+			System.out.println("SRC IS : " + this.immediate);
+
 		}
 
 		//for ADD instructions
@@ -211,15 +215,21 @@ public class Instruction implements Runnable
 				halt = true;
 			}
 			System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
+			System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
 			if (registerInUse.get(this.dest) == null && registerInUse.get(this.src) == null)
 			{
 				registerInUse.replace(this.dest, DEST);
 				registerInUse.replace(this.src, SRC);
 			}
-			else if (registerInUse.get(this.src) != null && registerInUse.get(this.src).equals(DEST));
+			else if (registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(DEST))
+			{
+				return 2;
+			}
+			else if (registerInUse.get(this.src) != null && registerInUse.get(this.src).equals(DEST))
 			{
 				return 1;
 			}
+			
 			//else, assume valid and use registers
 			// else{
 			// 	if (registerInUse.get(this.dest)
@@ -286,15 +296,15 @@ public class Instruction implements Runnable
 			halt = true;
 		}
 
-		try
-		{
+		// try
+		// {
 
-			Thread.sleep(100);
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
+		// 	Thread.sleep(100);
+		// }
+		// catch (Exception e)
+		// {
+		// 	e.printStackTrace();
+		// }
 		//make sure to remove hardware
 		this.decode = true;
 		// hardware[1] = false;
@@ -398,15 +408,15 @@ public class Instruction implements Runnable
 		registerInUse.replace(dest, null);
 		registerInUse.replace(src, null);
 
-		try
-		{
+		// try
+		// {
 
-			Thread.sleep(100);
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
+		// 	Thread.sleep(100);
+		// }
+		// catch (Exception e)
+		// {
+		// 	e.printStackTrace();
+		// }
 		// local_clock_cycle += 1;
 			//make sure to deallocate hardware
 		// hardware[2] = false;
@@ -439,15 +449,15 @@ public class Instruction implements Runnable
 		// System.out.println("DOING MEMORY FOR INSTRUCTION " + ins_count + " AT CLOCK CYCLE " + clock_cycle.get());
 		local_clock_cycle += 1;
 		this.mem = true;
-		try
-		{
+		// try
+		// {
 
-			Thread.sleep(100);
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
+		// 	Thread.sleep(100);
+		// }
+		// catch (Exception e)
+		// {
+		// 	e.printStackTrace();
+		// }
 		// hardware[3] = false;
 	}
 
@@ -482,15 +492,15 @@ public class Instruction implements Runnable
 		// }
 		memoryBlock.put(dest, result);
 		this.wb = true;
-		try
-		{
+		// try
+		// {
 
-			Thread.sleep(100);
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-		}
+		// 	Thread.sleep(100);
+		// }
+		// catch (Exception e)
+		// {
+		// 	e.printStackTrace();
+		// }
 		// local_clock_cycle += 1;
 		//release the writeback hardware
 		// hardware[4] = false;
@@ -498,73 +508,7 @@ public class Instruction implements Runnable
 		registerInUse.replace(this.src, null);
 	}
 
-	public synchronized void run()
-	{
-		// do the 5 stage cycle here
-		//
-		while(fetch == false || decode == false || execute == false || mem == false || wb == false)
-		{
-			if (fetch == false && decode == false && execute == false && mem == false && wb == false)
-			{
-				fetch();
-			}
-			else if (fetch == true && decode == false && execute == false && mem == false && wb == false)
-			{
-				decode();
-			}
-			else if (fetch == true && decode == true && execute == false && mem == false && wb == false)
-			{
-				execute();
-			}
-			else if (fetch == true && decode == true && execute == true && mem == false && wb == false)
-			{
-				mem_proc();
-			}
-			else if (fetch == true && decode == true && execute == true && mem == true && wb == false)
-			{
-				writeBack();
-			}
-		}
 
-		if (local_clock_cycle > clock_cycle.get())
-		{
-			int difference = local_clock_cycle - clock_cycle.get();
-			clock_cycle.getAndAdd(difference);
-		}
-		System.out.println("TOTAL CLOCK CYCLES: " + clock_cycle);
-		System.out.println("TOTAL NUMBER OF STALLS: " + stalls);
-		System.out.println("RESULT OF INSTRUCTION: " + result);
-	}
-
-	// public synchronized void start()
-	// {
-	// 	while(t == null)
-	// 	{
-	// 		System.out.println("Creating a new thread...");
-	// 		t = new Thread (this, Integer.toString(ins_count));
-	// 		if (ins_count == 0)
-	// 		{
-	// 			t.start();
-	// 			runningThreads.add(ins_count);
-	// 		}
-	// 		else
-	// 		{
-	// 			while (true)
-	// 			{
-	// 				Boolean found = false;
-	// 				for (Integer i : runningThreads)
-	// 				{
-	// 					if (i == ins_count - 1) found = true;
-	// 				}
-	//
-	// 				if (found == true) break;
-	// 			}
-	// 			System.out.println("Previous instruction started! Starting next instruction...");
-	// 			t.start ();
-	// 			runningThreads.add(ins_count);
-	// 		}
-	// 	}
-	// }
 
 	//checks if dest is an invalid register
 	//return true if invalid, false otherwise
