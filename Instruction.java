@@ -93,76 +93,24 @@ public class Instruction
 	}
 	public synchronized void fetch()
 	{
-		// do fetch
-		// while()
-		// while(hardware[0] == true || (runningThreads.contains(ins_count - 1) == false && ins_count != 0))
-		// {
-		//
-		// 	System.out.println("FETCH HARDWARE NOT AVAILABLE!");
-		// 	try
-		// 	{
-		// 		local_clock_cycle = clock_cycle.get();
-		// 		// local_clock_cycle += 1;
-		// 		// //clock_cycle.getAndIncrement();
-		// 		Thread.sleep(100);
-		// 	}
-		// 	catch (Exception e)
-		// 	{
-		// 		e.printStackTrace();
-		// 	}
-		// 	return;
-		// }
-		// acquire the hardware
-		// hardware[0] = true;
 
-		current_instruction = instruction.get(program_counter.getAndIncrement());
-		// current_instruction = instruction.removeFirst();
-		// System.out.println("DOING FETCH FOR INSTRUCTION " + ins_count + " AT CLOCK CYCLE " + clock_cycle.get());
-		runningThreads.add(ins_count);
 		// fetch the instruction
 		// increase the program counter
+		current_instruction = instruction.get(program_counter.getAndIncrement());
+
+		runningThreads.add(ins_count);
+
 
 		fetch = true;
 
-		// try
-		// {
-		//
-		// 	Thread.sleep(100);
-		// }
-		// catch (Exception e)
-		// {
-		// 	e.printStackTrace();
-		// }
-
 		// release the hardware
 		hardware[0] = false;
-		// local_clock_cycle += 1;
-		//clock_cycle.getAndIncrement();
+
 
 
 	}
 	public synchronized int decode()
 	{
-
-		// while(hardware[1] == true)
-		// {
-		// 	this.stalls += 1;
-		// 	local_clock_cycle += 1;
-		// 	System.out.println("DECODE HARDWARE NOT AVAILABLE! STALLING");
-		// 	try
-		// 	{
-		// 		Thread.sleep(100);
-		// 	}
-		// 	catch (Exception e)
-		// 	{
-		// 		e.printStackTrace();
-		// 	}
-		// 	return;
-		// }
-
-		//use hardware
-		// hardware[1] = true;
-		// System.out.println("DOING DECODE FOR INSTRUCTION " + ins_count + " AT CLOCK CYCLE " + clock_cycle.get());
 		//error variable
 		boolean halt = false;
 		// do decode
@@ -204,9 +152,8 @@ public class Instruction
 
 			// get registers to use
 			this.dest = register.pop();
-			// System.out.println("(ADD) DEST IS: " + this.dest);
 			this.src = register.pop();
-			// System.out.println("(ADD) SRC IS: " + this.src);
+
 
 			//check if registers are invalid
 			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc())
@@ -230,29 +177,7 @@ public class Instruction
 				return 1;
 			}
 			
-			//else, assume valid and use registers
-			// else{
-			// 	if (registerInUse.get(this.dest)
-			// 	{
-			// 		System.out.println("DEPENDENCIES FOUND (RAW)! STALLING");
-			// 		this.stalls += 1;
-			// 		return;
-			// 	}
-			// 	// while(checkFlowDependency())
-			// 	// {
-			// 	// 	System.out.println("DEST REGISTER IS BEING USED AS DEST REGISTER! WAITING FOR IT TO FINISH");
-			// 	// 	try
-			// 	// 	{
-			// 	// 		Thread.sleep(100);
-			// 	// 		stalls += 1;
-			// 	// 		local_clock_cycle += 1;
-			// 	// 	}
-			// 	// 	catch(Exception e)
-			// 	// 	{
-			// 	// 		e.printStackTrace();
-			// 	// 	}
-			// 	// }
-			// }
+
 		}
 
 		//for SUB instructions
@@ -266,9 +191,20 @@ public class Instruction
 			//check if registers are invalid
 			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc()) halt = true;
 			//else, assume valid and use registers
-			else {
+			System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
+			System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
+			if (registerInUse.get(this.dest) == null && registerInUse.get(this.src) == null)
+			{
 				registerInUse.replace(this.dest, DEST);
 				registerInUse.replace(this.src, SRC);
+			}
+			else if (registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(DEST))
+			{
+				return 2;
+			}
+			else if (registerInUse.get(this.src) != null && registerInUse.get(this.src).equals(DEST))
+			{
+				return 1;
 			}
 		}
 
@@ -284,9 +220,20 @@ public class Instruction
 			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc()) halt = true;
 
 			//else, assume valid and use registers
-			else {
+			System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
+			System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
+			if (registerInUse.get(this.dest) == null && registerInUse.get(this.src) == null)
+			{
 				registerInUse.replace(this.dest, DEST);
 				registerInUse.replace(this.src, SRC);
+			}
+			else if (registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(DEST))
+			{
+				return 2;
+			}
+			else if (registerInUse.get(this.src) != null && registerInUse.get(this.src).equals(DEST))
+			{
+				return 1;
 			}
 		}
 
@@ -296,68 +243,18 @@ public class Instruction
 			halt = true;
 		}
 
-		// try
-		// {
 
-		// 	Thread.sleep(100);
-		// }
-		// catch (Exception e)
-		// {
-		// 	e.printStackTrace();
-		// }
-		//make sure to remove hardware
 		this.decode = true;
-		// hardware[1] = false;
-		// local_clock_cycle += 1;
-		//if there was an error, stop
+
 		if (halt) return -1;
 
 		return 0;
-		// System.out.println("DECODE is done!");
+
 
 	}
 	public synchronized void execute()
 	{
 		boolean halt = false;
-
-		//if hardware is not available or if there is a flow dependency, stall execution
-		// while(hardware[2] == true)
-		// {
-		// 	this.stalls += 1;
-		// 	System.out.println("EXECUTE HARDWARE NOT AVAILABLE! STALLING");
-		// 	try
-		// 	{
-		//
-		// 		Thread.sleep(100);
-		// 		local_clock_cycle += 1;
-		// 	}
-		// 	catch (Exception e)
-		// 	{
-		// 		e.printStackTrace();
-		// 	}
-		// 	return;
-		// }
-		// while (checkFlowDependency())
-		// {
-		// 	System.out.println("FLOW DEPENDECY FOUND! STALLING");
-		// 	stalls += 1;
-		// 	local_clock_cycle += 1;
-		// 	try
-		// 	{
-		// 		Thread.sleep(100);
-		// 	}
-		// 	catch (Exception e)
-		// 	{
-		// 		e.printStackTrace();
-		// 	}
-		// }
-		// while (checkFlowDependency()) {}
-		// System.out.println("NO FLOW DEPENDENCIES FOUND!");
-		// do execute and use registers
-		// hardware[2] = true;
-		// System.out.println("DOING EXECUTE FOR INSTRUCTION " + ins_count + " AT CLOCK CYCLE " + clock_cycle.get());
-		// System.out.println("EXECUTING...");
-		//no need to conduct error checking since decode stage does most of that(?)
 
 		//computation starts here
 		//no writing to registers yet since that happens only during writeback stage
@@ -391,7 +288,7 @@ public class Instruction
 
 		//for CMP instruction
 		else if(isCmp){
-			System.out.println("EXECUTING SUB INSTRUCTION...");
+			System.out.println("EXECUTING CMP INSTRUCTION...");
 			this.result = memoryBlock.get(this.dest) - memoryBlock.get(this.src);
 
 			// raise flags
@@ -404,22 +301,6 @@ public class Instruction
 
 		this.execute = true;
 
-		//make sure to open registers again
-		registerInUse.replace(dest, null);
-		registerInUse.replace(src, null);
-
-		// try
-		// {
-
-		// 	Thread.sleep(100);
-		// }
-		// catch (Exception e)
-		// {
-		// 	e.printStackTrace();
-		// }
-		// local_clock_cycle += 1;
-			//make sure to deallocate hardware
-		// hardware[2] = false;
 		if (halt){
 			System.out.println("HALTING...");
 			return;
@@ -428,82 +309,16 @@ public class Instruction
 	}
 	public synchronized void mem_proc()
 	{
-		// do memory
-		// while(hardware[3] == true)
-		// {
-		// 	this.stalls += 1;
-		// 	System.out.println("MEMORY HARDWARE NOT AVAIABLE! STALLING!");
-		// 	try
-		// 	{
-		//
-		// 		Thread.sleep(100);
-		// 		local_clock_cycle += 1;
-		// 	}
-		// 	catch (Exception e)
-		// 	{
-		// 		e.printStackTrace();
-		// 	}
-		// 	return;
-		// }
-		// hardware[3] = true;
-		// System.out.println("DOING MEMORY FOR INSTRUCTION " + ins_count + " AT CLOCK CYCLE " + clock_cycle.get());
+
 		local_clock_cycle += 1;
 		this.mem = true;
-		// try
-		// {
-
-		// 	Thread.sleep(100);
-		// }
-		// catch (Exception e)
-		// {
-		// 	e.printStackTrace();
-		// }
-		// hardware[3] = false;
 	}
 
 	public synchronized void writeBack()
 	{
-		// do write back
-		// stallThread.currentThread()
-		// while(hardware[4] == true)
-		// {
-		// 	this.stalls += 1;
-		// 	System.out.println("WRITEBACK HARDWARE NOT AVAILABLE! STALLING!");
-		// 	try
-		// 	{
-		//
-		// 		Thread.sleep(100);
-		// 		local_clock_cycle += 1;
-		// 	}
-		// 	catch (Exception e)
-		// 	{
-		// 		e.printStackTrace();
-		// 	}
-		// 	return;
-		// }
 
-		// hardware[4] = true;
-		// System.out.println("DOING WRITEBACK FOR INSTRUCTION " + ins_count + " AT CLOCK CYCLE " + clock_cycle.get());
-		//access registers
-		// for(String s : register){
-		// 	if(s.contains(registerInUse)){
-		// 		this.register = this.result;
-		// 	}
-		// }
 		memoryBlock.put(dest, result);
 		this.wb = true;
-		// try
-		// {
-
-		// 	Thread.sleep(100);
-		// }
-		// catch (Exception e)
-		// {
-		// 	e.printStackTrace();
-		// }
-		// local_clock_cycle += 1;
-		//release the writeback hardware
-		// hardware[4] = false;
 		registerInUse.replace(this.dest, null);
 		registerInUse.replace(this.src, null);
 	}

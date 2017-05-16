@@ -84,7 +84,15 @@ public class Main
 	}
 	public static void main(String[] args)
 	{
-		loadFile("input.txt");
+		//if there is no argument entered, terminate and require user to enter a filename as argument
+		if(args.length==0){
+			System.out.println("1 argument is required.");
+			System.out.println("Usage: java Main <filename>");
+			System.exit(-1);
+		}
+
+
+		loadFile(args[0]);
 		// initial mapping of registers and their values
 		for (int i = 0; i < instruction.size(); i++)
 		{
@@ -96,26 +104,20 @@ public class Main
 		LinkedList<Instruction> instruction_queue = new LinkedList<Instruction>();
 		while (threads < number_of_instructions)
 		{
-			// new Thread(new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, runningThreads, clock_cycle)).start();
-			// threads += 1;
-			// System.out.println("Program Counter:" + program_counter);
 			instruction_queue.add(new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, runningThreads, clock_cycle));
 			threads += 1;
 
 
 		}
-		// Collections.reverse(instruction_queue);
+
 		while (!instructionFinished(instruction_queue))
 		{
 			for (Instruction i : instruction_queue)
 			{
 				delay();
-				// i.updateClockCycle(clock_cycle.get());
-				// i.updateRegisterInUse(registerInUse);
+
 				for (int z = 1; z < 32; z++)
 				{
-					// System.out.println("REGISTER IN USE VALUES OF INSTRUCTION : " + instruction_queue.indexOf(i));
-					// System.out.println("R" + z + " , " + i.registerInUse.get("R" + z));
 					i.registerInUse.replace("R" + z, registerInUse.get("R" + z));
 				}
 				i.register = new LinkedList<String>(registers);
@@ -131,12 +133,6 @@ public class Main
 				else if (i.fetch && !i.decode)
 				{
 					hardware[0] = false;
-					// if (registerInUse.get(i.src).equals("DEST"))
-					// {
-					// 	System.out.println("RAW! STALLING...");
-					// 	i.stalls += 1;
-					// 	continue;
-					// }
 					if (hardware[1] == true)
 					{
 						System.out.println("DECODE HARDWARE NOT AVAILABLE! STALLING...");
@@ -153,19 +149,18 @@ public class Main
 						hardware[1] = false;
 						continue;
 					}
-					if (value == 2){
+					else if (value == 2){
 						System.out.println("WAW DEPENDENCY FOUND! STALLING...");
 						i.stalls += 1;
 						hardware[1] = false;
 						continue;
 					}
+					else if (value == -1){
+						System.out.println("An error in instruction decode has occurred. Program execution is aborted.");
+						System.exit(-1);
+					}
 					else if (value == 0) registerInUse = new HashMap<String, String>(i.registerInUse);
-					// for (int z = 1; z < 32; z++)
-					// {
-					// 	// System.out.println("REGISTER IN USE VALUES OF INSTRUCTION : " + instruction_queue.indexOf(i));
-					// 	// System.out.println("R" + z + " , " + i.registerInUse.get("R" + z));
-					// 	registerInUse.replace("R" + z, i.registerInUse.get("R" + z));
-					// }
+
 					registers = new LinkedList<String>(i.register);
 					
 					continue;
@@ -182,11 +177,7 @@ public class Main
 					hardware[2] = true;
 					System.out.println("DOING EXECUTE FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.execute();
-					// if (i.fetch == true && i.decode == true && i.execute == true && i.mem == true && i.wb == true)
-					// {
-					// 	hardware[4] = false;
-					// 	continue;
-					// }
+
 					memory = new HashMap<String, Integer>(i.memoryBlock);
 					continue;
 				}
@@ -220,10 +211,7 @@ public class Main
 					hardware[4] = false;
 					continue;
 				}
-				// else if (i.fetch && i.decode && i.execute && i.mem && i.wb){
-				// 	registerInUse = new HashMap<String, String>(i.registerInUse);
-				// 	continue;
-				// }
+
 				
 			}
 			clock_cycle.getAndIncrement();
