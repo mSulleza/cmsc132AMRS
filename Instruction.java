@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Instruction
 {
 
-	private Thread t;
+
 	// instructions will run as threads to emulate concurrency in pipelining
 	// they will share the instruction and register stack and the memory hashmap
 
@@ -27,6 +27,16 @@ public class Instruction
 	public static final String SUB = "SUB";
 	public static final String DEST = "DEST";
 	public static final String SRC = "SRC";
+
+	public static final int OVERFLOW_THRESHOLD = 99;
+	public static final int UNDERFLOW_THRESHOLD = -99;
+
+	public static final int ANTI_DEPENDENCE = 3;
+	public static final int OUTPUT_DEPENDENCE = 2;
+	public static final int FLOW_DEPENDENCE = 1;
+
+	public static final int ERROR_HALT = -1;
+	public static final int SUCCESS = 0;
 
 	// boolean for current stage
 	boolean fetch = false;
@@ -91,7 +101,7 @@ public class Instruction
 	{
 		this.registerInUse = newRegisterInUse;
 	}
-	public synchronized void fetch()
+	public void fetch()
 	{
 
 		// fetch the instruction
@@ -109,7 +119,7 @@ public class Instruction
 
 
 	}
-	public synchronized int decode()
+	public int decode()
 	{
 		//error variable
 		boolean halt = false;
@@ -168,13 +178,17 @@ public class Instruction
 				registerInUse.replace(this.dest, DEST);
 				registerInUse.replace(this.src, SRC);
 			}
-			else if (registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(DEST))
+			else if (checkOutputDependency())
 			{
-				return 2;
+				return OUTPUT_DEPENDENCE;
 			}
-			else if (registerInUse.get(this.src) != null && registerInUse.get(this.src).equals(DEST))
+			else if (checkFlowDependency())
 			{
-				return 1;
+				return FLOW_DEPENDENCE;
+			}
+			else if (checkAntiDependency())
+			{
+				return ANTI_DEPENDENCE;
 			}
 			
 
@@ -193,19 +207,24 @@ public class Instruction
 			//else, assume valid and use registers
 			System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
 			System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
-			if (registerInUse.get(this.dest) == null && registerInUse.get(this.src) == null)
+			if (checkRegisterDestFree() && checkRegisterSrcFree())
 			{
 				registerInUse.replace(this.dest, DEST);
 				registerInUse.replace(this.src, SRC);
 			}
-			else if (registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(DEST))
+			else if (checkOutputDependency())
 			{
-				return 2;
+				return OUTPUT_DEPENDENCE;
 			}
-			else if (registerInUse.get(this.src) != null && registerInUse.get(this.src).equals(DEST))
+			else if (checkFlowDependency())
 			{
-				return 1;
+				return FLOW_DEPENDENCE;
 			}
+			else if (checkAntiDependency())
+			{
+				return ANTI_DEPENDENCE;
+			}
+			
 		}
 
 		// for CMP instructions
@@ -222,19 +241,24 @@ public class Instruction
 			//else, assume valid and use registers
 			System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
 			System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
-			if (registerInUse.get(this.dest) == null && registerInUse.get(this.src) == null)
+			if (checkRegisterDestFree() && checkRegisterSrcFree())
 			{
 				registerInUse.replace(this.dest, DEST);
 				registerInUse.replace(this.src, SRC);
 			}
-			else if (registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(DEST))
+			else if (checkOutputDependency())
 			{
-				return 2;
+				return OUTPUT_DEPENDENCE;
 			}
-			else if (registerInUse.get(this.src) != null && registerInUse.get(this.src).equals(DEST))
+			else if (checkFlowDependency())
 			{
-				return 1;
+				return FLOW_DEPENDENCE;
 			}
+			else if (checkAntiDependency())
+			{
+				return ANTI_DEPENDENCE;
+			}
+				
 		}
 
 		//for invalid instructions
@@ -246,13 +270,13 @@ public class Instruction
 
 		this.decode = true;
 
-		if (halt) return -1;
+		if (halt) return ERROR_HALT;
 
-		return 0;
+		return SUCCESS;
 
 
 	}
-	public synchronized void execute()
+	public void execute()
 	{
 		boolean halt = false;
 
@@ -307,14 +331,14 @@ public class Instruction
 		}
 
 	}
-	public synchronized void mem_proc()
+	public void mem_proc()
 	{
 
 		local_clock_cycle += 1;
 		this.mem = true;
 	}
 
-	public synchronized void writeBack()
+	public void writeBack()
 	{
 
 		memoryBlock.put(dest, result);
@@ -327,7 +351,7 @@ public class Instruction
 
 	//checks if dest is an invalid register
 	//return true if invalid, false otherwise
-	public synchronized boolean checkInvalidRegisterDest(){
+	public boolean checkInvalidRegisterDest(){
 		if(!memoryBlock.containsKey(this.dest)){
 			System.out.println("Instruction " + this.current_instruction +this.dest+", "+this.src +"is invalid. Reason: "+ this.dest+ "is not a valid register.");
 			return true;
@@ -343,7 +367,7 @@ public class Instruction
 
 	//checks if src is an invalid register
 	//return true if invalid, false otherwise
-	public synchronized boolean checkInvalidRegisterSrc(){
+	public boolean checkInvalidRegisterSrc(){
 		if(!memoryBlock.containsKey(this.src)){
 			System.out.println("Instruction " + this.current_instruction +this.dest+", "+this.src +"is invalid. Reason: "+ this.src+ "is not a valid register.");
 			return true;
@@ -356,26 +380,57 @@ public class Instruction
 		return false;
 	}
 
+	//RAW
 	//checks availability of source operand by knowing
 	//if the source operand is currently being used
 	//as a destination operand by another instruction
 	//return true if flow dependency exists, false otherwise
-	// public synchronized boolean checkFlowDependency(){
-	// 	if(registerInUse.get(this.src).equals(DEST)){
-	// 		return true;
-	// 	}
-	// 	return false;
-	// }
-	public synchronized boolean checkFlowDependency(){
-		if (registerInUse.get(this.src).equals(DEST) || registerInUse.get(this.dest).equals(DEST)){
-			return true;
-		}
 
+	public boolean checkFlowDependency(){
+		if (registerInUse.get(this.src) != null && registerInUse.get(this.src).equals(DEST))
+			return true;
+		
 		return false;
 	}
 
-	public synchronized boolean checkForOverflow(int num){
-		if (num>99){
+	//WAW
+	//checks availability of dest operand
+	//if dest operand is marked as "dest"
+	//then a preceding instruction is still in the process of writing to it
+	//return true if output dependency exists, false otherwise
+	public boolean checkOutputDependency(){
+		if(registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(DEST)) 
+			return true;
+		return false;
+	}
+
+	//WAR
+	//checks if dest operand is being used as src operand by a preceding instruction
+	//return true if antidependency exists, false otherwise
+	public boolean checkAntiDependency(){
+		if(registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(SRC))
+			return true;
+		return false;
+	}
+
+
+	//functions that check whether the registers needed are free to use
+	public boolean checkRegisterDestFree(){
+		if (registerInUse.get(this.dest) == null) return true;
+		return false;
+	}
+
+	public boolean checkRegisterSrcFree(){
+		if (registerInUse.get(this.src) == null) return true;
+		return false;
+	}
+
+
+	//functions that check for overflow/underflow
+
+
+	public boolean checkForOverflow(int num){
+		if (num>OVERFLOW_THRESHOLD){
 			System.out.println("Overflow detected at Instruction"+ this.current_instruction + " " + this.dest + ", " + this.src + ".");
 			System.out.println("Terminating...");
 			return true;
@@ -383,8 +438,8 @@ public class Instruction
 		else return false;
 	}
 
-	public synchronized boolean checkForUnderflow(int num){
-		if (num<-99) {
+	public boolean checkForUnderflow(int num){
+		if (num<UNDERFLOW_THRESHOLD) {
 			System.out.println("Underflow detected at Instruction"+ this.current_instruction + " " + this.dest + ", " + this.src + ".");
 			System.out.println("Terminating...");
 			return true;

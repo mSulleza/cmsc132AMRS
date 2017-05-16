@@ -142,24 +142,30 @@ public class Main
 					hardware[1] = true;
 					System.out.println("DOING DECODE FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
 					int value = i.decode();
-					if (value == 1)
+					if (value == Instruction.FLOW_DEPENDENCE)
 					{
 						System.out.println("RAW DEPENDENCY FOUND! STALLING...");
 						i.stalls += 1;
 						hardware[1] = false;
 						continue;
 					}
-					else if (value == 2){
+					else if (value == Instruction.OUTPUT_DEPENDENCE){
 						System.out.println("WAW DEPENDENCY FOUND! STALLING...");
 						i.stalls += 1;
 						hardware[1] = false;
 						continue;
 					}
-					else if (value == -1){
+					else if (value == Instruction.ANTI_DEPENDENCE){
+						System.out.println("WAR DEPENDENCY FOUND! STALLING...");
+						i.stalls += 1;
+						hardware[1] = false;
+						continue;
+					}
+					else if (value == Instruction.ERROR_HALT){
 						System.out.println("An error in instruction decode has occurred. Program execution is aborted.");
 						System.exit(-1);
 					}
-					else if (value == 0) registerInUse = new HashMap<String, String>(i.registerInUse);
+					else if (value == Instruction.SUCCESS) registerInUse = new HashMap<String, String>(i.registerInUse);
 
 					registers = new LinkedList<String>(i.register);
 					
