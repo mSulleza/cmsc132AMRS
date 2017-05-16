@@ -127,14 +127,14 @@ public class Instruction
 		// if blocks for different instructions
 
 		//for LOAD instructions
-		System.out.println("CURRENT INS: " + current_instruction);
+		// System.out.println("CURRENT INS: " + current_instruction);
 		if (current_instruction.equals(LOAD)){
 			this.isLoad = true;
 
 			// get registers to use
 			this.dest = register.pop();
 			registerInUse.replace(this.dest, DEST);
-			System.out.println("DEST IS : " + this.dest + " AND NOW SET TO " + registerInUse.get(this.dest) + " IN THE registerInUse HashMap");
+			// System.out.println("DEST IS : " + this.dest + " AND NOW SET TO " + registerInUse.get(this.dest) + " IN THE registerInUse HashMap");
 
 			//try-catch block for handling integer parse errors
 			try{
@@ -152,7 +152,7 @@ public class Instruction
 				halt = true;
 			}
 
-			System.out.println("SRC IS : " + this.immediate);
+			// System.out.println("SRC IS : " + this.immediate);
 
 		}
 
@@ -171,8 +171,8 @@ public class Instruction
 				System.out.println("HALTING...");
 				halt = true;
 			}
-			System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
-			System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
+			// System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
+			// System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
 			if (registerInUse.get(this.dest) == null && registerInUse.get(this.src) == null)
 			{
 				registerInUse.replace(this.dest, DEST);
@@ -205,8 +205,8 @@ public class Instruction
 			//check if registers are invalid
 			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc()) halt = true;
 			//else, assume valid and use registers
-			System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
-			System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
+			// System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
+			// System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
 			if (checkRegisterDestFree() && checkRegisterSrcFree())
 			{
 				registerInUse.replace(this.dest, DEST);
@@ -239,8 +239,8 @@ public class Instruction
 			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc()) halt = true;
 
 			//else, assume valid and use registers
-			System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
-			System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
+			// System.out.println("SRC IS " + this.src + " AND USED AS " + registerInUse.get(this.src));
+			// System.out.println("DEST IS " + this.dest + " AND USED AS " + registerInUse.get(this.dest));
 			if (checkRegisterDestFree() && checkRegisterSrcFree())
 			{
 				registerInUse.replace(this.dest, DEST);
@@ -285,14 +285,14 @@ public class Instruction
 
 		//for LOAD instruction
 		if(isLoad){
-			System.out.println("EXECUTING LOAD INSTRUCTION...");
+			// System.out.println("EXECUTING LOAD INSTRUCTION...");
 			this.result = this.immediate;
-			System.out.println("LOADED: " + this.dest + ": " + this.result);
+			// System.out.println("LOADED: " + this.dest + ": " + this.result);
 		}
 
 		//for ADD instruction
 		else if(isAdd){
-			System.out.println("EXECUTING ADD INSTRUCTION...");
+			// System.out.println("EXECUTING ADD INSTRUCTION...");
 			this.result = memoryBlock.get(dest) + memoryBlock.get(src);
 
 			//raise flags for underflow or overflow
@@ -302,7 +302,7 @@ public class Instruction
 
 		//for SUB instruction
 		else if(isSub){
-			System.out.println("EXECUTING SUB INSTRUCTION...");
+			// System.out.println("EXECUTING SUB INSTRUCTION...");
 			this.result = memoryBlock.get(dest) - memoryBlock.get(src);
 
 			//raise flags for underflow or overflow
@@ -312,7 +312,7 @@ public class Instruction
 
 		//for CMP instruction
 		else if(isCmp){
-			System.out.println("EXECUTING CMP INSTRUCTION...");
+			// System.out.println("EXECUTING CMP INSTRUCTION...");
 			this.result = memoryBlock.get(this.dest) - memoryBlock.get(this.src);
 
 			// raise flags
@@ -343,6 +343,12 @@ public class Instruction
 
 		memoryBlock.put(dest, result);
 		this.wb = true;
+	}
+
+	//outputs a formatted Instruction string
+	//Format: <operator> <operand>, <operand>
+	public String getInstructionString(){
+		return current_instruction + " " + this.dest + ", " + this.src;
 	}
 
 
