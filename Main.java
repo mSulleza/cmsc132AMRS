@@ -116,12 +116,23 @@ public class Main
 			{
 				delay();
 
+				// update the instruction's registerInUse map
 				for (int z = 1; z < 32; z++)
 				{
 					i.registerInUse.replace("R" + z, registerInUse.get("R" + z));
 				}
+				// update the instruction's register
 				i.register = new LinkedList<String>(registers);
+				// update the instruction's memory
 				i.memoryBlock = new HashMap<String, Integer>(memory);
+				if (i.fetch && i.decode && i.execute && i.mem && i.wb)
+				{
+					// hardware[4] = false;
+					i.registerInUse.replace(i.dest, null);
+					i.registerInUse.replace(i.src, null);
+					registerInUse = new HashMap<String, String>(i.registerInUse);
+					continue;
+				}
 				if (!i.fetch)
 				{
 					System.out.println("DOING FETCH FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
@@ -168,7 +179,7 @@ public class Main
 					else if (value == Instruction.SUCCESS) registerInUse = new HashMap<String, String>(i.registerInUse);
 
 					registers = new LinkedList<String>(i.register);
-					
+
 					continue;
 				}
 				else if (i.fetch && i.decode && !i.execute)
@@ -213,12 +224,9 @@ public class Main
 					hardware[4] = true;
 					System.out.println("DOING WRITEBACK FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.writeBack();
-					registerInUse = new HashMap<String, String>(i.registerInUse);
 					hardware[4] = false;
 					continue;
 				}
-
-				
 			}
 			clock_cycle.getAndIncrement();
 		}

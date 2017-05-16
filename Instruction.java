@@ -190,7 +190,7 @@ public class Instruction
 			{
 				return ANTI_DEPENDENCE;
 			}
-			
+
 
 		}
 
@@ -224,7 +224,7 @@ public class Instruction
 			{
 				return ANTI_DEPENDENCE;
 			}
-			
+
 		}
 
 		// for CMP instructions
@@ -258,7 +258,7 @@ public class Instruction
 			{
 				return ANTI_DEPENDENCE;
 			}
-				
+
 		}
 
 		//for invalid instructions
@@ -343,8 +343,6 @@ public class Instruction
 
 		memoryBlock.put(dest, result);
 		this.wb = true;
-		registerInUse.replace(this.dest, null);
-		registerInUse.replace(this.src, null);
 	}
 
 
@@ -389,7 +387,7 @@ public class Instruction
 	public boolean checkFlowDependency(){
 		if (registerInUse.get(this.src) != null && registerInUse.get(this.src).equals(DEST))
 			return true;
-		
+
 		return false;
 	}
 
@@ -399,7 +397,7 @@ public class Instruction
 	//then a preceding instruction is still in the process of writing to it
 	//return true if output dependency exists, false otherwise
 	public boolean checkOutputDependency(){
-		if(registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(DEST)) 
+		if(registerInUse.get(this.dest) != null && registerInUse.get(this.dest).equals(DEST))
 			return true;
 		return false;
 	}
