@@ -19,9 +19,9 @@ public class Main
 	//"dest" (if used as destination),
 	//"src" (if used as source),
 	//null if not being used
-	static HashMap<String, String> registerInUse = new HashMap<String, String>();
+	public static HashMap<String, String> registerInUse = new HashMap<String, String>();
 	// clock cycle
-	static AtomicInteger clock_cycle = new AtomicInteger(0);
+	public static AtomicInteger clock_cycle = new AtomicInteger(1);
 	// program counter
 	static AtomicInteger program_counter = new AtomicInteger(0);
 	static int number_of_instructions = 0;
@@ -61,10 +61,26 @@ public class Main
 	}
 	public static void initializeRegisters()
 	{
-		for (int i = 0; i < 32; i++)
+		for (int i = 1; i < 32; i++)
 		{
 			memory.put("R" + i, 0);
 		}
+		for (int i = 1; i < 32; i++)
+		{
+			registerInUse.put("R" + i, null);
+		}
+	}
+	public static boolean instructionFinished(LinkedList<Instruction> instruction_queue)
+	{
+		boolean finished = true;
+		for (Instruction i : instruction_queue)
+		{
+			if (i.fetch == false || i.decode == false || i.execute == false || i.mem == false || i.wb == false)
+			{
+				finished = false;
+			}
+		}
+		return finished;
 	}
 	public static void main(String[] args)
 	{
@@ -77,18 +93,120 @@ public class Main
 		initializeRegisters();
 		int threads = 0;
 		System.out.println("INSTRUCTION COUNT: " + number_of_instructions);
+		LinkedList<Instruction> instruction_queue = new LinkedList<Instruction>();
 		while (threads < number_of_instructions)
 		{
-			// try
-			// {
-			new Thread(new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, runningThreads, clock_cycle)).start();
-			// ins.join();
-			// }
-			// catch(InterruptedException e)
-			// {
-			// 	e.printStackTrace();
-			// }
+			// new Thread(new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, runningThreads, clock_cycle)).start();
+			// threads += 1;
+			instruction_queue.add(new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, runningThreads, clock_cycle));
 			threads += 1;
 		}
+		while (!instructionFinished(instruction_queue))
+		{
+			for (Instruction i : instruction_queue)
+			{
+				// i.updateClockCycle(clock_cycle.get());
+				// i.updateRegisterInUse(registerInUse);
+				for (int z = 1; z < 32; z++)
+				{
+					// System.out.println("REGISTER IN USE VALUES OF INSTRUCTION : " + instruction_queue.indexOf(i));
+					// System.out.println("R" + z + " , " + i.registerInUse.get("R" + z));
+					i.registerInUse.replace("R" + z, registerInUse.get("R" + z));
+				}
+				i.register = new LinkedList<String>(registers);
+				i.memoryBlock = new HashMap<String, Integer>(memory);
+				if (i.fetch == false && i.decode == false && i.execute == false && i.mem == false && i.wb == false)
+				{
+					System.out.println("DOING FETCH FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					hardware[0] = true;
+					i.fetch();
+					break;
+				}
+				else if (i.fetch == true && i.decode == false && i.execute == false && i.mem == false && i.wb == false)
+				{
+					hardware[0] = false;
+					// if (registerInUse.get(i.src).equals("DEST"))
+					// {
+					// 	System.out.println("RAW! STALLING...");
+					// 	i.stalls += 1;
+					// 	continue;
+					// }
+					if (hardware[1] == true)
+					{
+						System.out.println("DECODE HARDWARE NOT AVAILABLE! STALLING...");
+						i.stalls += 1;
+						continue;
+					}
+					hardware[1] = true;
+					System.out.println("DOING DECODE FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					if (i.decode() == 1)
+					{
+						System.out.println("RAW DEPENDENCIES FOUND! STALLING...");
+						i.stalls += 1;
+						hardware[1] = false;
+						continue;
+					}
+					else if (i.decode() == 0) registerInUse = new HashMap<String, String>(i.registerInUse);
+					// for (int z = 1; z < 32; z++)
+					// {
+					// 	// System.out.println("REGISTER IN USE VALUES OF INSTRUCTION : " + instruction_queue.indexOf(i));
+					// 	// System.out.println("R" + z + " , " + i.registerInUse.get("R" + z));
+					// 	registerInUse.replace("R" + z, i.registerInUse.get("R" + z));
+					// }
+					continue;
+				}
+				else if (i.fetch == true && i.decode == true && i.execute == false && i.mem == false && i.wb == false)
+				{
+					hardware[1] = false;
+					if (hardware[2] == true)
+					{
+						System.out.println("EXECUTE HARDWARE NOT AVAILABLE! STALLING...");
+						i.stalls += 1;
+						continue;
+					}
+					hardware[2] = true;
+					System.out.println("DOING EXECUTE FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					i.execute();
+					if (i.fetch == true && i.decode == true && i.execute == true && i.mem == true && i.wb == true)
+					{
+						hardware[4] = false;
+						continue;
+					}
+					registers = new LinkedList<String>(i.register);
+					memory = new HashMap<String, Integer>(i.memoryBlock);
+					continue;
+				}
+				else if (i.fetch == true && i.decode == true && i.execute == true && i.mem == false && i.wb == false)
+				{
+					hardware[2] = false;
+					if (hardware[3] == true)
+					{
+						System.out.println("MEMORY HARDWARE NOT AVAILABLE! STALLING...");
+						i.stalls += 1;
+						continue;
+					}
+					hardware[3] = true;
+					System.out.println("DOING MEMORY FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					i.mem_proc();
+					continue;
+				}
+				else if (i.fetch == true && i.decode == true && i.execute == true && i.mem == true && i.wb == false)
+				{
+					hardware[3] = false;
+					if (hardware[4] == true)
+					{
+						System.out.println("WRITEBACK HARDWARE NOT AVAILABLE! STALLING...");
+						i.stalls += 1;
+						continue;
+					}
+					hardware[4] = true;
+					System.out.println("DOING WRITEBACK FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					i.writeBack();
+					continue;
+				}
+			}
+			clock_cycle.getAndIncrement();
+		}
+
 	}
 }
