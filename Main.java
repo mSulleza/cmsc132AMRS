@@ -61,11 +61,11 @@ public class Main
 	}
 	public static void initializeRegisters()
 	{
-		for (int i = 1; i < 32; i++)
+		for (int i = 1; i <= 32; i++)
 		{
 			memory.put("R" + i, 0);
 		}
-		for (int i = 1; i < 32; i++)
+		for (int i = 1; i <= 32; i++)
 		{
 			registerInUse.put("R" + i, null);
 		}
@@ -184,7 +184,7 @@ public class Main
 					System.out.println("DOING EXECUTE FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.execute();
 
-					memory = new HashMap<String, Integer>(i.memoryBlock);
+					
 					continue;
 				}
 				else if (i.fetch && i.decode && i.execute && !i.mem)
@@ -214,15 +214,19 @@ public class Main
 					System.out.println("DOING WRITEBACK FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.writeBack();
 					registerInUse = new HashMap<String, String>(i.registerInUse);
+					memory = new HashMap<String, Integer>(i.memoryBlock);
 					hardware[4] = false;
 					continue;
 				}
 
 				
 			}
+			
 			clock_cycle.getAndIncrement();
 		}
-
+		
+		registerValues();
+		registerStatus();
 	}
 
 	public static void delay(){
@@ -235,4 +239,33 @@ public class Main
 				e.printStackTrace();
 			}
 	}
+
+	public static void registerValues(){
+		System.out.println("====================================================");
+		System.out.println("As of clock cycle " + clock_cycle.get());
+		System.out.println("Register Values");
+		for (int i = 1; i<32; i+=4){
+			System.out.print("R"+ i + ": " + memory.get("R"+i));
+			System.out.print("\tR"+ (i+1) + ": " + memory.get("R"+(i+1)));
+			System.out.print("\tR"+ (i+2) + ": " + memory.get("R"+(i+2)));
+			System.out.print("\tR"+ (i+3) + ": " + memory.get("R"+(i+3)));
+			System.out.println();
+		}
+		System.out.println("====================================================");
+	}
+	
+	public static void registerStatus(){
+		System.out.println("====================================================");
+		System.out.println("As of clock cycle " + clock_cycle.get());
+		System.out.println("Register Status");
+		for (int i = 1; i<32; i+=4){
+			System.out.print("R"+ i + ": " + registerInUse.get("R"+i));
+			System.out.print("\tR"+ (i+1) + ": " + registerInUse.get("R"+(i+1)));
+			System.out.print("\tR"+ (i+2) + ": " + registerInUse.get("R"+(i+2)));
+			System.out.print("\tR"+ (i+3) + ": " + registerInUse.get("R"+(i+3)));
+			System.out.println();
+		}
+		System.out.println("====================================================");
+	}
+
 }
