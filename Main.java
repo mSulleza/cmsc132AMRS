@@ -104,7 +104,7 @@ public class Main
 
 
 		}
-		Collections.reverse(instruction_queue);
+		// Collections.reverse(instruction_queue);
 		while (!instructionFinished(instruction_queue))
 		{
 			for (Instruction i : instruction_queue)
