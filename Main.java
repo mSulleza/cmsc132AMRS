@@ -30,6 +30,7 @@ public class Main
 	// program counter
 	static AtomicInteger program_counter = new AtomicInteger(0);
 	static int number_of_instructions = 0;
+	// linkedlist for in order issuance of instruction
 	static LinkedList<Integer> runningThreads = new LinkedList<Integer>();
 	public static void parser(String line)
 	{
@@ -99,10 +100,6 @@ public class Main
 
 		loadFile(args[0]);
 		// initial mapping of registers and their values
-		// for (int i = 0; i < instruction.size(); i++)
-		// {
-		// 	System.out.println("INS: " + instruction.get(i));
-		// }
 		initializeRegisters();
 		int threads = 0;
 		System.out.println("INSTRUCTION COUNT: " + number_of_instructions);
@@ -118,6 +115,7 @@ public class Main
 		main.add(cc_label);
 		while (threads < number_of_instructions)
 		{
+			// creates an instance of instruction and adds in in the instruction queue
 			instruction_queue.add(new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, runningThreads, clock_cycle));
 			threads += 1;
 		}
@@ -146,7 +144,9 @@ public class Main
 				}
 				if (!i.fetch)
 				{
+					// fetch stage
 					// System.out.println("DOING FETCH FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					// acquires the hardware
 					hardware[0] = true;
 					i.fetch();
 
@@ -154,6 +154,7 @@ public class Main
 				}
 				else if (i.fetch && !i.decode)
 				{
+					// releases the fetch hardware
 					hardware[0] = false;
 					if (hardware[1] == true)
 					{
@@ -162,11 +163,13 @@ public class Main
 						i.stalls += 1;
 						continue;
 					}
+					// acquires the decode hardware
 					hardware[1] = true;
 					// System.out.println("DOING DECODE FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
 					int value = i.decode();
 					if (value == Instruction.FLOW_DEPENDENCE)
 					{
+						// checks for flow DEPENDENCY
 						System.out.println("RAW DEPENDENCY FOUND! STALLING...");
 						System.out.println("\t @Instruction: " + i.getInstructionString());
 						i.stalls += 1;
@@ -174,6 +177,7 @@ public class Main
 						continue;
 					}
 					else if (value == Instruction.OUTPUT_DEPENDENCE){
+						// checks for output dependency
 						System.out.println("WAW DEPENDENCY FOUND! STALLING...");
 						System.out.println("\t @Instruction: " + i.getInstructionString());
 						i.stalls += 1;
@@ -181,6 +185,7 @@ public class Main
 						continue;
 					}
 					else if (value == Instruction.ANTI_DEPENDENCE){
+						// checks for anti dependency
 						System.out.println("WAR DEPENDENCY FOUND! STALLING...");
 						System.out.println("\t @Instruction: " + i.getInstructionString());
 						i.stalls += 1;
@@ -188,18 +193,20 @@ public class Main
 						continue;
 					}
 					else if (value == Instruction.ERROR_HALT){
+						// halts the execution of an instruction if an error occurs
 						System.out.println("An error in instruction decode has occurred. Program execution is aborted.");
 						System.out.println("\t @Instruction: " + i.getInstructionString());
 						System.exit(-1);
 					}
 					else if (value == Instruction.SUCCESS) registerInUse = new HashMap<String, String>(i.registerInUse);
-
+					// updates the value of the registers
 					registers = new LinkedList<String>(i.register);
 
 					continue;
 				}
 				else if (i.fetch && i.decode && !i.execute)
 				{
+					// releases the decode hardware
 					hardware[1] = false;
 					if (hardware[2] == true)
 					{
@@ -208,15 +215,17 @@ public class Main
 						i.stalls += 1;
 						continue;
 					}
+					// acquires the execute hardware
 					hardware[2] = true;
 					// System.out.println("DOING EXECUTE FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.execute();
 
-					
+
 					continue;
 				}
 				else if (i.fetch && i.decode && i.execute && !i.mem)
 				{
+					// releases the execute hardware
 					hardware[2] = false;
 					if (hardware[3] == true)
 					{
@@ -225,6 +234,7 @@ public class Main
 						i.stalls += 1;
 						continue;
 					}
+					// acquires the memory hardware
 					hardware[3] = true;
 					// System.out.println("DOING MEMORY FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.mem_proc();
@@ -232,6 +242,7 @@ public class Main
 				}
 				else if (i.fetch && i.decode && i.execute && i.mem && !i.wb)
 				{
+					// releases the wmemory hardware
 					hardware[3] = false;
 					if (hardware[4] == true)
 					{
@@ -240,24 +251,31 @@ public class Main
 						i.stalls += 1;
 						continue;
 					}
+					// acquires the writeBack hardware
 					hardware[4] = true;
 					// System.out.println("DOING WRITEBACK FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.writeBack();
 
+					// updates the used registers
 					registerInUse = new HashMap<String, String>(i.registerInUse);
+					// updates the memory block
 					memory = new HashMap<String, Integer>(i.memoryBlock);
-
+					// releases the writeback hardware
 					hardware[4] = false;
 					continue;
 				}
 			}
+			// prints the register values
 			registerValues();
+			// prints the register status
 			registerStatus();
+			// increments the clock cycle
 			clock_cycle.getAndIncrement();
 			cc_label.setText("CLOCK CYCLE: " + clock_cycle);
 		}
-		
-		
+		clock_cycle.getAndDecrement();
+		cc_label.setText("CLOCK CYCLE: " + clock_cycle);
+
 	}
 
 	public static void delay(){
@@ -284,7 +302,7 @@ public class Main
 		}
 		System.out.println("====================================================");
 	}
-	
+
 	public static void registerStatus(){
 		System.out.println("====================================================");
 		System.out.println("As of clock cycle " + clock_cycle.get());
