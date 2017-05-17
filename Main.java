@@ -2,12 +2,23 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.*;
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableModel;
+import java.awt.*;
+// import javax.swing.table.AbstractTableModel;
+// import javax.swing.table.TableModel;
 public class Main
 {
+	static String[] columnNames = {"REGISTER", "VALUE", "STATUS"};
+	static Object[][] data = {
+			{"R1", "", ""}, {"R2", "", ""}, {"R3", "", ""}, {"R4", "", ""},
+			{"R5", "", ""}, {"R6", "", ""}, {"R7", "", ""}, {"R8", "", ""},
+			{"R9", "", ""}, {"R10", "", ""}, {"R11", "", ""}, {"R12", "", ""},
+			{"R13", "", ""}, {"R14", "", ""}, {"R15", "", ""}, {"R16", "", ""},
+			{"R17", "", ""}, {"R18", "", ""}, {"R19", "", ""}, {"R20", "", ""},
+			{"R21", "", ""}, {"R22", "", ""}, {"R23", "", ""}, {"R24", "", ""},
+			{"R25", "", ""}, {"R26", "", ""}, {"R27", "", ""}, {"R28", "", ""},
+			{"R29", "", ""}, {"R30", "", ""}, {"R31", "", ""}, {"R32", "", ""}
+	};
+	static JTable table = new JTable(data, columnNames);
 	// list of instructions
 	static LinkedList<String> instruction = new LinkedList<String>();
 	// list of register
@@ -40,7 +51,7 @@ public class Main
 
 		for (int i = 0; i < reg.length; i++)
 		{
-			// System.out.println("ADDING REGISTER: " + reg[i]);
+			System.out.println("ADDING REGISTER: " + reg[i]);
 			registers.add(reg[i]);
 		}
 	}
@@ -106,13 +117,25 @@ public class Main
 		LinkedList<Instruction> instruction_queue = new LinkedList<Instruction>();
 
 		JFrame main = new JFrame("ARMS");
-		main.setSize(640, 480);
+		JPanel pane = new JPanel(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		main.setSize(960, 640);
 		main.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		main.setVisible(true);
 
 		// GUI components
 		JLabel cc_label = new JLabel("CLOCK CYCLE: " + clock_cycle, JLabel.CENTER);
-		main.add(cc_label);
+		JScrollPane scrollPane = new JScrollPane(table);
+		scrollPane.setBorder(BorderFactory.createTitledBorder ("CURRENT REGISTER VALUES"));
+		main.add(pane);
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.gridx = 0;
+		c.gridy = 0;
+		pane.add(cc_label, c);
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.gridx = 0;
+		c.gridy = 1;
+		pane.add(scrollPane, c);
 		while (threads < number_of_instructions)
 		{
 			// creates an instance of instruction and adds in in the instruction queue
@@ -145,7 +168,7 @@ public class Main
 				if (!i.fetch)
 				{
 					// fetch stage
-					// System.out.println("DOING FETCH FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					System.out.println("DOING FETCH FOR INSTRUCTION " + (instruction_queue.indexOf(i) + 1) + " AT CLOCK CYCLE " + clock_cycle.get());
 					// acquires the hardware
 					hardware[0] = true;
 					i.fetch();
@@ -165,7 +188,7 @@ public class Main
 					}
 					// acquires the decode hardware
 					hardware[1] = true;
-					// System.out.println("DOING DECODE FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					System.out.println("DOING DECODE FOR INSTRUCTION " + i.getInstructionString() + " AT CLOCK CYCLE " + clock_cycle.get());
 					int value = i.decode();
 					if (value == Instruction.FLOW_DEPENDENCE)
 					{
@@ -174,6 +197,8 @@ public class Main
 						System.out.println("\t @Instruction: " + i.getInstructionString());
 						i.stalls += 1;
 						hardware[1] = false;
+						registers = new LinkedList<String>(i.register);
+						memory = new HashMap<String, Integer>(i.memoryBlock);
 						continue;
 					}
 					else if (value == Instruction.OUTPUT_DEPENDENCE){
@@ -182,6 +207,8 @@ public class Main
 						System.out.println("\t @Instruction: " + i.getInstructionString());
 						i.stalls += 1;
 						hardware[1] = false;
+						registers = new LinkedList<String>(i.register);
+						memory = new HashMap<String, Integer>(i.memoryBlock);
 						continue;
 					}
 					else if (value == Instruction.ANTI_DEPENDENCE){
@@ -190,6 +217,8 @@ public class Main
 						System.out.println("\t @Instruction: " + i.getInstructionString());
 						i.stalls += 1;
 						hardware[1] = false;
+						registers = new LinkedList<String>(i.register);
+						memory = new HashMap<String, Integer>(i.memoryBlock);
 						continue;
 					}
 					else if (value == Instruction.ERROR_HALT){
@@ -217,7 +246,7 @@ public class Main
 					}
 					// acquires the execute hardware
 					hardware[2] = true;
-					// System.out.println("DOING EXECUTE FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					System.out.println("DOING EXECUTE FOR INSTRUCTION " + i.getInstructionString() + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.execute();
 
 
@@ -236,7 +265,7 @@ public class Main
 					}
 					// acquires the memory hardware
 					hardware[3] = true;
-					// System.out.println("DOING MEMORY FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					System.out.println("DOING MEMORY FOR INSTRUCTION " + i.getInstructionString() + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.mem_proc();
 					continue;
 				}
@@ -253,7 +282,7 @@ public class Main
 					}
 					// acquires the writeBack hardware
 					hardware[4] = true;
-					// System.out.println("DOING WRITEBACK FOR INSTRUCTION " + instruction_queue.indexOf(i) + " AT CLOCK CYCLE " + clock_cycle.get());
+					System.out.println("DOING WRITEBACK FOR INSTRUCTION " + i.getInstructionString() + " AT CLOCK CYCLE " + clock_cycle.get());
 					i.writeBack();
 
 					// updates the used registers
@@ -265,6 +294,7 @@ public class Main
 					continue;
 				}
 			}
+			updateRegisterTable();
 			// prints the register values
 			registerValues();
 			// prints the register status
@@ -302,7 +332,14 @@ public class Main
 		}
 		System.out.println("====================================================");
 	}
-
+	public static void updateRegisterTable()
+	{
+		for (int i = 1; i < 33; i++)
+		{
+			table.getModel().setValueAt(memory.get("R" + i), i - 1, 1);
+			table.getModel().setValueAt(registerInUse.get("R" + i), i - 1, 2);
+		}
+	}
 	public static void registerStatus(){
 		System.out.println("====================================================");
 		System.out.println("As of clock cycle " + clock_cycle.get());

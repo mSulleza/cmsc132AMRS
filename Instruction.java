@@ -49,8 +49,8 @@ public class Instruction
 	int immediate = 0;
 
 	// assuming all instructions are I-types (Opcode <dest>, <src>)
-	String dest;
-	String src;
+	String dest = "";
+	String src = "";
 
 	// boolean flag if immediate value will be used as src
 	boolean isImmediate;
@@ -131,27 +131,44 @@ public class Instruction
 		if (current_instruction.equals(LOAD)){
 			this.isLoad = true;
 
-			// get registers to use
-			this.dest = register.pop();
-			registerInUse.replace(this.dest, DEST);
+				// get registers to use
+			if (dest.equals("")) this.dest = register.pop();
 			// System.out.println("DEST IS : " + this.dest + " AND NOW SET TO " + registerInUse.get(this.dest) + " IN THE registerInUse HashMap");
 
 			//try-catch block for handling integer parse errors
-			try{
-				this.src = register.pop();
-				this.immediate = Integer.parseInt(this.src);
+			if (src.equals(""))
+			{
+				try{
+					this.src = register.pop();
+					this.immediate = Integer.parseInt(this.src);
 
-				//if register is invalid, change halt variable to true
-				if(!memoryBlock.containsKey(this.dest)){
-					System.out.println("Instruction LOAD "+ this.dest +", "+ this.src +" is invalid. Reason: "+ this.dest + " is not a valid register.");
+					//if register is invalid, change halt variable to true
+					if(!memoryBlock.containsKey(this.dest)){
+						System.out.println("Instruction LOAD "+ this.dest +", "+ this.src +" is invalid. Reason: "+ this.dest + " is not a valid register.");
+						halt = true;
+					}
+				}catch(NumberFormatException e){
+					// e.printStackTrace();
+					System.out.println("Instruction LOAD "+ this.dest +", "+ this.src +" is invalid. Reason: "+ this.src + "is not an immediate value.");
 					halt = true;
 				}
-			}catch(NumberFormatException e){
-				// e.printStackTrace();
-				System.out.println("Instruction LOAD "+ this.dest +", "+ this.src +" is invalid. Reason: "+ this.src + "is not an immediate value.");
-				halt = true;
 			}
-
+			if (registerInUse.get(this.dest) == null)
+			{
+				registerInUse.replace(this.dest, DEST);
+			}
+			else if (checkOutputDependency())
+			{
+				return OUTPUT_DEPENDENCE;
+			}
+			else if (checkFlowDependency())
+			{
+				return FLOW_DEPENDENCE;
+			}
+			else if (checkAntiDependency())
+			{
+				return ANTI_DEPENDENCE;
+			}
 			// System.out.println("SRC IS : " + this.immediate);
 
 		}
@@ -161,8 +178,8 @@ public class Instruction
 			this.isAdd = true;
 
 			// get registers to use
-			this.dest = register.pop();
-			this.src = register.pop();
+			if (dest.equals("")) this.dest = register.pop();
+			if (src.equals("")) this.src = register.pop();
 
 
 			//check if registers are invalid
@@ -199,8 +216,8 @@ public class Instruction
 			this.isSub = true;
 
 			//get registers to use
-			this.dest = register.pop();
-			this.src = register.pop();
+			if (dest.equals("")) this.dest = register.pop();
+			if (src.equals("")) this.src = register.pop();
 
 			//check if registers are invalid
 			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc()) halt = true;
@@ -232,8 +249,8 @@ public class Instruction
 			this.isCmp = true;
 
 			//get registers to use
-			this.dest = register.pop();
-			this.src = register.pop();
+			if (dest.equals("")) this.dest = register.pop();
+			if (src.equals("")) this.src = register.pop();
 
 			//check if registers are invalid
 			if(checkInvalidRegisterDest() && checkInvalidRegisterSrc()) halt = true;
