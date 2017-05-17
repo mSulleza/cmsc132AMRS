@@ -1,6 +1,11 @@
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.swing.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableModel;
 public class Main
 {
 	// list of instructions
@@ -102,14 +107,20 @@ public class Main
 		int threads = 0;
 		System.out.println("INSTRUCTION COUNT: " + number_of_instructions);
 		LinkedList<Instruction> instruction_queue = new LinkedList<Instruction>();
+
+		JFrame main = new JFrame("ARMS");
+		main.setSize(640, 480);
+		main.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		main.setVisible(true);
+
+		// GUI components
+		JLabel cc_label = new JLabel("CLOCK CYCLE: " + clock_cycle, JLabel.CENTER);
+		main.add(cc_label);
 		while (threads < number_of_instructions)
 		{
 			instruction_queue.add(new Instruction(threads, instruction, registers, memory, flags, hardware, registerInUse, program_counter, runningThreads, clock_cycle));
 			threads += 1;
-
-
 		}
-
 		while (!instructionFinished(instruction_queue))
 		{
 			for (Instruction i : instruction_queue)
@@ -229,6 +240,7 @@ public class Main
 				}
 			}
 			clock_cycle.getAndIncrement();
+			cc_label.setText("CLOCK CYCLE: " + clock_cycle);
 		}
 
 	}
